@@ -1,0 +1,86 @@
+name: Build Protected Free Tester APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/tester-build-trigger.txt'
+
+jobs:
+  build-tester:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install Android platform
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Extract project
+        run: unzip -q EspritLibreAndroid_V5.zip -d extracted
+
+      - name: Apply application patches
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 tools/patch_v6.py extracted/EspritLibreAndroid
+          python3 tools/patch_v61.py extracted/EspritLibreAndroid
+          python3 tools/patch_v62.py extracted/EspritLibreAndroid
+          python3 tools/patch_v62_state.py extracted/EspritLibreAndroid
+          python3 tools/patch_v63.py extracted/EspritLibreAndroid
+          python3 tools/patch_v64.py extracted/EspritLibreAndroid
+          python3 tools/patch_v65.py extracted/EspritLibreAndroid
+          python3 tools/patch_v65_nosign.py extracted/EspritLibreAndroid
+          python3 tools/patch_tester_free.py extracted/EspritLibreAndroid
+
+      - name: Generate one-off tester signing certificate
+        working-directory: extracted/EspritLibreAndroid/app
+        run: |
+          keytool -genkeypair -v -keystore tester-release.keystore -storepass 'EspritTester2026!' -keypass 'EspritTester2026!' -alias esprit-tester -keyalg RSA -keysize 3072 -validity 3650 -dname 'CN=Esprit Leger Tester, OU=Beta, O=Esprit Leger, L=Toulouse, ST=Occitanie, C=FR'
+
+      - name: Encrypt web application and bind integrity to certificate
+        shell: bash
+        run: |
+          ROOT='extracted/EspritLibreAndroid'
+          HTML="$ROOT/app/src/main/assets/index.html"
+          HTML_SHA=$(sha256sum "$HTML" | awk '{print $1}')
+          CERT_SHA=$(keytool -exportcert -alias esprit-tester -keystore "$ROOT/app/tester-release.keystore" -storepass 'EspritTester2026!' | openssl dgst -sha256 -binary | xxd -p -c 256)
+          AES_KEY=$(openssl rand -hex 32)
+          AES_IV=$(openssl rand -hex 16)
+          openssl enc -aes-256-cbc -K "$AES_KEY" -iv "$AES_IV" -in "$HTML" -out "$ROOT/app/src/main/assets/index.dat"
+          rm "$HTML"
+          python3 tools/finalize_tester_protection.py "$ROOT" "$HTML_SHA" "$CERT_SHA" "$AES_KEY" "$AES_IV"
+
+      - name: Build protected release APK
+        working-directory: extracted/EspritLibreAndroid
+        run: gradle assembleRelease
+
+      - name: Verify protection and APK signature
+        shell: bash
+        run: |
+          APK='extracted/EspritLibreAndroid/app/build/outputs/apk/release/app-release.apk'
+          apksigner verify --verbose "$APK"
+          if unzip -l "$APK" | grep -q 'assets/index.html'; then echo 'ERROR: plaintext HTML found'; exit 1; fi
+          unzip -l "$APK" | grep 'assets/index.dat'
+          if unzip -p "$APK" assets/index.dat | strings | grep -q 'Allège ma semaine'; then echo 'ERROR: encrypted asset appears readable'; exit 1; fi
+
+      - name: Upload protected tester APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: esprit-leger-test-gratuit-protege
+          path: extracted/EspritLibreAndroid/app/build/outputs/apk/release/app-release.apk
