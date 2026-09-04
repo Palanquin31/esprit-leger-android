@@ -27,36 +27,40 @@ if old_render not in html:
 html=html.replace(old_render,new_render,1)
 
 # 4) Complete first launch in strict sequence NDA -> consent -> tutorial -> profile -> family.
+# Replace the later locked sequence so it wins over duplicate earlier functions.
 start=html.index('/* Séquence d\'ouverture verrouillée */')
 end=html.index('</script>', start)
 block='''/* Séquence d'ouverture V6.1 : NDA -> autorisations -> tutoriel -> profil -> famille */\nlet onboardingStepLock = "done";\n\nfunction hideOnboardingStack(){\n  ["betaNdaModal","consentModal","onboardingModal","setupModal","familyIntroModal"].forEach(id=>{\n    const el=document.getElementById(id);\n    if(el)el.classList.remove("show");\n  });\n}\nfunction showOnlyOnboarding(id){\n  hideOnboardingStack();\n  const el=document.getElementById(id);\n  if(el)el.classList.add("show");\n  onboardingStepLock = id==="betaNdaModal" ? "nda" : id==="consentModal" ? "consent" : id==="onboardingModal" ? "tutorial" : id==="setupModal" ? "profile" : id==="familyIntroModal" ? "family" : "done";\n}\nfunction acceptBetaAgreement(){\n  const cb=document.getElementById("ndaAccept");\n  if(cb && !cb.checked){ alert("Veuillez accepter les conditions pour continuer."); return; }\n  localStorage.setItem("esprit_leger_beta_agreement", JSON.stringify({agreement:"Conditions bêta v1.0",acceptedAt:new Date().toISOString(),appVersion:"V6.1 DEV"}));\n  showOnlyOnboarding("consentModal");\n}\nfunction acceptConsentStep(){\n  localStorage.setItem("esprit_consents", JSON.stringify({\n    location:document.getElementById("consentLocation")?.checked ?? true,\n    health:document.getElementById("consentHealth")?.checked ?? false,\n    devices:false, notifications:document.getElementById("consentNotif")?.checked ?? true, ai:false\n  }));\n  showOnlyOnboarding("onboardingModal");\n}\nfunction finishOnboarding(){\n  onboardingSeen=true;\n  showOnlyOnboarding("setupModal");\n}\nfunction completeSetup(){\n  const name=document.getElementById("setupName")?.value?.trim();\n  if(!name){ alert("Ajoute ton prénom pour commencer."); return; }\n  Object.keys(people).forEach(k=>delete people[k]);\n  people[name]=setupColor || "#B99BFF";\n  onboardingSeen=true;\n  showOnlyOnboarding("familyIntroModal");\n}\nconst _finishFamilyIntroV61 = finishFamilyIntro;\nfinishFamilyIntro=function(){\n  _finishFamilyIntroV61();\n  localStorage.setItem("esprit_leger_first_run_complete","1");\n  onboardingStepLock="done";\n  hideOnboardingStack();\n  render();\n};\nfunction enforceOnboardingSequence(){\n  if(onboardingStepLock==="nda")showOnlyOnboarding("betaNdaModal");\n  else if(onboardingStepLock==="consent")showOnlyOnboarding("consentModal");\n  else if(onboardingStepLock==="tutorial")showOnlyOnboarding("onboardingModal");\n  else if(onboardingStepLock==="profile")showOnlyOnboarding("setupModal");\n  else if(onboardingStepLock==="family")showOnlyOnboarding("familyIntroModal");\n}\nfunction startV61FirstRun(){\n  if(localStorage.getItem("esprit_leger_first_run_complete")==="1"){\n    onboardingStepLock="done"; hideOnboardingStack(); return;\n  }\n  onboardingStepLock="nda"; showOnlyOnboarding("betaNdaModal");\n}\nsetTimeout(startV61FirstRun,120);\n'''
 html=html[:start]+block+html[end:]
 
 # 5) Final CSS overrides: free card + real safe spacing inside the WebView as a second line of defence.
-css='''\n<style id="v61-final-fixes">\n/* V6.1 final UI fixes */\n.premium-teaser{display:none !important;}\n.family-test{display:none !important;}\n.free-premium-info{\n  display:flex;flex-direction:column;gap:5px;margin-top:14px;padding:12px 14px;border-radius:18px;\n  background:linear-gradient(135deg,#F5EEFF,#FFF1F6);border:1px solid #E7DBFA;color:#5C4A72;font-size:13px;line-height:1.35;\n}\n.free-premium-info b{font-size:13px;color:#6A4C93;}\n.free-premium-info span{color:#776C82;}\nbody.premium-active .free-premium-info{display:none !important;}\n.unified-advice-card{overflow:hidden;}\n.phone{padding-top:18px !important;padding-bottom:150px !important;}\n.nav{bottom:22px !important;}\n.stable-hero{margin-top:0 !important;}\n.hello-logo-wrap{margin-left:0 !important;justify-self:center !important;}\n@media(max-width:430px){.phone{padding-top:16px !important;padding-bottom:148px !important}.nav{bottom:20px !important}}\n</style>\n'''
+css='''\n<style id="v61-final-fixes">\n/* V6.1 final UI fixes */\n.premium-teaser{display:none !important;}\n.family-test{display:none !important;}\n.free-premium-info{\n  display:flex;flex-direction:column;gap:5px;margin-top:14px;padding:12px 14px;border-radius:18px;\n  background:linear-gradient(135deg,#F5EEFF,#FFF1F6);border:1px solid #E7DBFA;color:#5C4A72;font-size:13px;line-height:1.35;\n}\n.free-premium-info b{font-size:13px;color:#6A4C93;}\n.free-premium-info span{color:#776C82;}\nbody.premium-active .free-premium-info{display:none !important;}\n.unified-advice-card{overflow:hidden;}\n/* Fixed navigation must never sit on Android system controls. Native insets resize the WebView; this adds breathing room. */\n.phone{padding-top:18px !important;padding-bottom:150px !important;}\n.nav{bottom:22px !important;}\n.stable-hero{margin-top:0 !important;}\n/* Visual logo in the hero: centered in its grid cell */\n.hello-logo-wrap{margin-left:0 !important;justify-self:center !important;}\n@media(max-width:430px){.phone{padding-top:16px !important;padding-bottom:148px !important}.nav{bottom:20px !important}}\n</style>\n'''
 html += css
 htmlp.write_text(html,encoding='utf-8')
 
-# 6) Native safe-area handling: resize WebView with layout margins, rather than padding a fullscreen WebView.
+# 6) Native safe-area handling: replace compact V6 Activity with a safe-area root container.
 mainp=root/'app/src/main/java/com/espritlibre/app/MainActivity.java'
 main=mainp.read_text(encoding='utf-8')
-main=main.replace('import android.view.View;\nimport android.view.WindowInsets;', 'import android.view.View;\nimport android.view.WindowInsets;\nimport android.widget.FrameLayout;\nimport android.graphics.Color;')
-old='''        webView = new WebView(this);\n        setContentView(webView);\n\n        // Respect status/navigation bars on modern Android (including edge-to-edge enforcement).\n        webView.setOnApplyWindowInsetsListener((v, insets) -> {\n            int top = insets.getSystemWindowInsetTop();\n            int bottom = insets.getSystemWindowInsetBottom();\n            v.setPadding(0, top, 0, bottom);\n            return insets;\n        });\n        webView.requestApplyInsets();'''
-new='''        getWindow().setStatusBarColor(Color.WHITE);\n        getWindow().setNavigationBarColor(Color.WHITE);\n        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);\n\n        FrameLayout root = new FrameLayout(this);\n        webView = new WebView(this);\n        root.addView(webView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));\n        setContentView(root);\n\n        // Android 15/16 can enforce edge-to-edge. Resize the actual WebView viewport to the safe area.\n        root.setOnApplyWindowInsetsListener((v, insets) -> {\n            int top = insets.getSystemWindowInsetTop();\n            int bottom = insets.getSystemWindowInsetBottom();\n            int left = insets.getSystemWindowInsetLeft();\n            int right = insets.getSystemWindowInsetRight();\n            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) webView.getLayoutParams();\n            lp.setMargins(left, top, right, bottom);\n            webView.setLayoutParams(lp);\n            return insets;\n        });\n        root.requestApplyInsets();'''
-if old not in main:
-    raise SystemExit('MainActivity inset block not found')
-main=main.replace(old,new,1)
-mainp.write_text(main,encoding='utf-8')
+# V6 generated Java is minified on GitHub, so patch the imports and onCreate prefix with regex.
+main=main.replace('import android.os.Bundle;import android.webkit', 'import android.os.Bundle;import android.view.View;import android.widget.FrameLayout;import android.graphics.Color;import android.webkit')
+pattern=r'@SuppressLint\("SetJavaScriptEnabled"\) @Override public void onCreate\(Bundle b\)\{super\.onCreate\(b\);webView=new WebView\(this\);setContentView\(webView\);\s*webView\.setOnApplyWindowInsetsListener\(\(v,i\)->\{v\.setPadding\(0,i\.getSystemWindowInsetTop\(\),0,i\.getSystemWindowInsetBottom\(\)\);return i;\}\);webView\.requestApplyInsets\(\);'
+replacement='@SuppressLint("SetJavaScriptEnabled") @Override public void onCreate(Bundle b){super.onCreate(b);\n  getWindow().setStatusBarColor(Color.WHITE);getWindow().setNavigationBarColor(Color.WHITE);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);\n  FrameLayout root=new FrameLayout(this);webView=new WebView(this);root.addView(webView,new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT));setContentView(root);\n  root.setOnApplyWindowInsetsListener((v,i)->{int top=i.getSystemWindowInsetTop(),bottom=i.getSystemWindowInsetBottom(),left=i.getSystemWindowInsetLeft(),right=i.getSystemWindowInsetRight();FrameLayout.LayoutParams lp=(FrameLayout.LayoutParams)webView.getLayoutParams();lp.setMargins(left,top,right,bottom);webView.setLayoutParams(lp);return i;});root.requestApplyInsets();'
+main2,n=re.subn(pattern,replacement,main,count=1)
+if n!=1:
+    raise SystemExit('MainActivity compact inset block not found')
+mainp.write_text(main2,encoding='utf-8')
 
 # 7) Adaptive + centered launcher icon.
 drawable=root/'app/src/main/res/drawable'
 source=Image.open(drawable/'app_icon.png').convert('RGBA')
 canvas=Image.new('RGBA',(512,512),(0,0,0,0))
+# Slightly smaller than full canvas so Android masks have balanced safe margins.
 img=source.resize((440,440),Image.Resampling.LANCZOS)
 canvas.alpha_composite(img,((512-440)//2,(512-440)//2))
 canvas.save(drawable/'app_icon_foreground.png')
 values=root/'app/src/main/res/values'; values.mkdir(parents=True,exist_ok=True)
-(values/'colors.xml').write_text('<resources><color name="icon_background">#F7D6E7</color></resources>\n',encoding='utf-8')
+colors=values/'colors.xml'
+colors.write_text('<resources><color name="icon_background">#F7D6E7</color></resources>\n',encoding='utf-8')
 mipmap=root/'app/src/main/res/mipmap-anydpi-v26'; mipmap.mkdir(parents=True,exist_ok=True)
 icon_xml='''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/icon_background"/>\n    <foreground android:drawable="@drawable/app_icon_foreground"/>\n</adaptive-icon>\n'''
 (mipmap/'ic_launcher.xml').write_text(icon_xml,encoding='utf-8')
@@ -67,6 +71,7 @@ mt=mt.replace('android:icon="@drawable/app_icon"','android:icon="@mipmap/ic_laun
 mt=mt.replace('android:roundIcon="@drawable/app_icon"','android:roundIcon="@mipmap/ic_launcher_round"')
 manifest.write_text(mt,encoding='utf-8')
 
+# Version name
 bp=root/'app/build.gradle'
 b=bp.read_text(encoding='utf-8')
 b=re.sub(r'versionName\s+["\'].*?["\']', 'versionName "1.0-beta6.1"', b)
