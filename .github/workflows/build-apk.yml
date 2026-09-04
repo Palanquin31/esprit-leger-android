@@ -85,6 +85,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v65_nosign.py extracted/EspritLibreAndroid
 
+      - name: Apply V6.6 native notification fixes
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v66.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
@@ -94,5 +98,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v6-5-dev-apk
+          name: esprit-leger-v6-6-dev-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
