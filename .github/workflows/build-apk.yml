@@ -49,17 +49,9 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: unzip -q EspritLibreAndroid_V5.zip -d extracted
 
-      - name: Fix Android app name resource
+      - name: Apply V6 development fixes
         if: steps.archive.outputs.present == 'true'
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('extracted/EspritLibreAndroid/app/src/main/res/values/strings.xml')
-          s = p.read_text(encoding='utf-8')
-          s = s.replace("L'Esprit Léger", "L\\'Esprit Léger")
-          p.write_text(s, encoding='utf-8')
-          print(p.read_text(encoding='utf-8'))
-          PY
+        run: python3 tools/patch_v6.py extracted/EspritLibreAndroid
 
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
@@ -70,5 +62,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v5-apk
+          name: esprit-leger-v6-dev-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
