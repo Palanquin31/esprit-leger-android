@@ -11,6 +11,15 @@ html=html.replace('.nav{bottom:20px !important}','.nav{bottom:68px !important}',
 html=html.replace('.phone{padding-top:18px !important;padding-bottom:150px !important;}', '.phone{padding-top:18px !important;padding-bottom:198px !important;}',1)
 html=html.replace('.phone{padding-top:16px !important;padding-bottom:148px !important}', '.phone{padding-top:16px !important;padding-bottom:198px !important}',1)
 
+# Repair the V6.2 behaviour script: an old patch inserted literal \\n sequences
+# inside the <script>, which makes that whole script invalid JavaScript.
+start=html.find('<script id="v62-behaviour-fixes">')
+if start!=-1:
+    end=html.find('</script>',start)
+    if end!=-1:
+        block=html[start:end+9].replace('\\n','\n')
+        html=html[:start]+block+html[end+9:]
+
 # Restore native city bridge lost when MainActivity was rewritten in V6.10.
 mainp=root/'app/src/main/java/com/espritlibre/app/MainActivity.java'
 main=mainp.read_text(encoding='utf-8')
@@ -23,7 +32,7 @@ if 'class CityBridge' not in main and marker in main:
     main=main.replace(marker,bridge+marker,1)
 mainp.write_text(main,encoding='utf-8')
 
-# Final audit marker appended after all historical fragments.
+# Final override appended after every historical style block.
 audit='''\n<style id="v614-final-nav-lock">\n.nav{bottom:68px !important;}\n.fab{bottom:162px !important;}\n.floating-add,.quick-add,.floating-plus{bottom:162px !important;}\n</style>\n'''
 if 'id="v614-final-nav-lock"' not in html:
     html += audit
