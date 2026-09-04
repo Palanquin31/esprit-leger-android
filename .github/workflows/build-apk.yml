@@ -81,9 +81,9 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v65.py extracted/EspritLibreAndroid
 
-      - name: Install stable development signing key
+      - name: Remove signing config until GitHub secret is configured
         if: steps.archive.outputs.present == 'true'
-        run: base64 -d tools/esprit-leger-dev.keystore.b64 > extracted/EspritLibreAndroid/app/esprit-leger-dev.keystore
+        run: python3 tools/patch_v65_nosign.py extracted/EspritLibreAndroid
 
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
