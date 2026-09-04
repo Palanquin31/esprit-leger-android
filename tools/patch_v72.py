@@ -13,8 +13,6 @@ if start!=-1:
     if end!=-1:
         block=html[start:end+8].replace('\\n','\n')
         html=html[:start]+block+html[end+8:]
-# Remove a literal escaped newline immediately following the V7.1 closing style tag.
-html=html.replace('</style>\\n<style id="v72-finish-polish">','</style>\n<style id="v72-finish-polish">')
 # Old V6.2 wrapper remnants sitting outside the script tag.
 html=html.replace(r'\n<script id="v62-behaviour-fixes">', '\n<script id="v62-behaviour-fixes">')
 start=html.find('<script id="v62-behaviour-fixes">')
@@ -22,6 +20,8 @@ if start!=-1:
     end=html.find('</script>',start)
     if end!=-1 and html[end+9:end+11]=='\\n':
         html=html[:end+9]+'\n'+html[end+11:]
+# Safe global cleanup: literal escaped newline immediately after a style close is never intended as visible text.
+html=html.replace('</style>\\n','</style>\n')
 html=re.sub(r'(?m)^(?:\\n\s*)+$', '', html)
 
 # 2) Slightly lower the + button while keeping the validated V7 nav position untouched.
@@ -49,9 +49,6 @@ finish_css=r'''
 '''
 if 'id="v72-finish-polish"' not in html:
     html += finish_css
-
-# If V7.2 style was just added, make sure no escaped newline sits before it.
-html=html.replace('</style>\\n<style id="v72-finish-polish">','</style>\n<style id="v72-finish-polish">')
 
 anchor_js=r'''
 <script id="v72-mood-anchor">
