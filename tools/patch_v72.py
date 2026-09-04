@@ -5,11 +5,25 @@ root=Path(sys.argv[1] if len(sys.argv)>1 else 'extracted/EspritLibreAndroid')
 htmlp=root/'app/src/main/assets/index.html'
 html=htmlp.read_text(encoding='utf-8')
 
-# 1) Remove literal escaped-newline text accidentally rendered at the end of the page by V7.1.
+# 1) Remove literal escaped-newline text that can be rendered as visible text.
+# V7.1 style wrapper.
 html=html.replace(r'\n<style id="v71-content-polish">', '<style id="v71-content-polish">')
-html=html.replace(r'</style>\n', '</style>\n')
-# Defensive cleanup of standalone literal \\n fragments immediately around our injected styles.
-html=re.sub(r'(?m)^\\n(?:\\n\s*)*$', '', html)
+# Convert literal escaped newlines inside the V7.1 style block to real newlines.
+start=html.find('<style id="v71-content-polish">')
+if start!=-1:
+    end=html.find('</style>',start)
+    if end!=-1:
+        block=html[start:end+8].replace('\\n','\n')
+        html=html[:start]+block+html[end+8:]
+# Old V6.2 wrapper remnants sitting outside the script tag.
+html=html.replace(r'\n<script id="v62-behaviour-fixes">', '\n<script id="v62-behaviour-fixes">')
+start=html.find('<script id="v62-behaviour-fixes">')
+if start!=-1:
+    end=html.find('</script>',start)
+    if end!=-1 and html[end+9:end+11]=='\\n':
+        html=html[:end+9]+'\n'+html[end+11:]
+# Defensive cleanup of any line made only of literal escaped newline tokens.
+html=re.sub(r'(?m)^(?:\\n\s*)+$', '', html)
 
 # 2) Slightly lower the + button while keeping the validated V7 nav position untouched.
 finish_css=r'''
