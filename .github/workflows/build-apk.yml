@@ -49,6 +49,18 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: unzip -q EspritLibreAndroid_V5.zip -d extracted
 
+      - name: Fix Android app name resource
+        if: steps.archive.outputs.present == 'true'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('extracted/EspritLibreAndroid/app/src/main/res/values/strings.xml')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace("L'Esprit Léger", "L\\'Esprit Léger")
+          p.write_text(s, encoding='utf-8')
+          print(p.read_text(encoding='utf-8'))
+          PY
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
