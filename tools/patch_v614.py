@@ -32,6 +32,11 @@ if 'class CityBridge' not in main and marker in main:
     main=main.replace(marker,bridge+marker,1)
 mainp.write_text(main,encoding='utf-8')
 
+# Premium IA: distinguish clock time (18h) from a duration (pendant 1h).
+ai_fix='''\n<script id="v614-ai-duration-fix">\n(function(){\n  window.extractDurationV65=function(text,def=30){\n    const l=(text||'').toLowerCase();\n    let m=l.match(/(?:pendant|durant|pour|durée(?:\\s+de)?|duree(?:\\s+de)?)\\s*(\\d+)\\s*h\\s*(\\d{1,2})?/);\n    if(m)return Number(m[1])*60+(m[2]?Number(m[2]):0);\n    m=l.match(/(?:pendant|durant|pour|durée(?:\\s+de)?|duree(?:\\s+de)?)\\s*(\\d{1,3})\\s*(?:min|minutes)/);\n    if(m)return Number(m[1]);\n    const hm=[...l.matchAll(/(\\d+)\\s*h\\s*(\\d{1,2})?/g)];\n    if(hm.length>1){const x=hm[hm.length-1];return Number(x[1])*60+(x[2]?Number(x[2]):0);}\n    const mm=[...l.matchAll(/(\\d{1,3})\\s*(?:min|minutes)/g)];\n    if(mm.length)return Number(mm[mm.length-1][1]);\n    return def;\n  };\n})();\n</script>\n'''
+if 'id="v614-ai-duration-fix"' not in html:
+    html += ai_fix
+
 # Final override appended after every historical style block.
 audit='''\n<style id="v614-final-nav-lock">\n.nav{bottom:68px !important;}\n.fab{bottom:162px !important;}\n.floating-add,.quick-add,.floating-plus{bottom:162px !important;}\n</style>\n'''
 if 'id="v614-final-nav-lock"' not in html:
