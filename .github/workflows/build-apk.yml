@@ -125,6 +125,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v70.py extracted/EspritLibreAndroid
 
+      - name: Apply V7.1 content fixes
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v71.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
@@ -134,5 +138,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v7-0-stable-test-apk
+          name: esprit-leger-v7-1-dev-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
