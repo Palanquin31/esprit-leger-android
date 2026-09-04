@@ -6,15 +6,15 @@ htmlp=root/'app/src/main/assets/index.html'
 html=htmlp.read_text(encoding='utf-8')
 
 # 1) Remove literal escaped-newline text that can be rendered as visible text.
-# V7.1 style wrapper.
 html=html.replace(r'\n<style id="v71-content-polish">', '<style id="v71-content-polish">')
-# Convert literal escaped newlines inside the V7.1 style block to real newlines.
 start=html.find('<style id="v71-content-polish">')
 if start!=-1:
     end=html.find('</style>',start)
     if end!=-1:
         block=html[start:end+8].replace('\\n','\n')
         html=html[:start]+block+html[end+8:]
+# Remove a literal escaped newline immediately following the V7.1 closing style tag.
+html=html.replace('</style>\\n<style id="v72-finish-polish">','</style>\n<style id="v72-finish-polish">')
 # Old V6.2 wrapper remnants sitting outside the script tag.
 html=html.replace(r'\n<script id="v62-behaviour-fixes">', '\n<script id="v62-behaviour-fixes">')
 start=html.find('<script id="v62-behaviour-fixes">')
@@ -22,18 +22,14 @@ if start!=-1:
     end=html.find('</script>',start)
     if end!=-1 and html[end+9:end+11]=='\\n':
         html=html[:end+9]+'\n'+html[end+11:]
-# Defensive cleanup of any line made only of literal escaped newline tokens.
 html=re.sub(r'(?m)^(?:\\n\s*)+$', '', html)
 
 # 2) Slightly lower the + button while keeping the validated V7 nav position untouched.
 finish_css=r'''
 <style id="v72-finish-polish">
-/* V7.0 validated navigation remains untouched. */
 .nav{bottom:68px !important;}
-/* + lowered slightly from V7.0, still clearly above the tab bar. */
 .fab-global{bottom:158px !important;}
 .quick-add-menu{bottom:226px !important;}
-/* Mood picker is now anchored beside/below the Etat bubble by JS, not at page bottom. */
 .mood-floating{
   bottom:auto !important;
   width:264px !important;
@@ -54,7 +50,9 @@ finish_css=r'''
 if 'id="v72-finish-polish"' not in html:
     html += finish_css
 
-# Anchor mood picker to the Etat card whenever it opens/resizes.
+# If V7.2 style was just added, make sure no escaped newline sits before it.
+html=html.replace('</style>\\n<style id="v72-finish-polish">','</style>\n<style id="v72-finish-polish">')
+
 anchor_js=r'''
 <script id="v72-mood-anchor">
 (function(){
