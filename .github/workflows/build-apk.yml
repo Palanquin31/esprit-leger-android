@@ -49,9 +49,17 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: unzip -q EspritLibreAndroid_V5.zip -d extracted
 
-      - name: Apply V6 development fixes
+      - name: Apply V6 base fixes
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v6.py extracted/EspritLibreAndroid
+
+      - name: Install icon patch dependency
+        if: steps.archive.outputs.present == 'true'
+        run: python3 -m pip install --quiet pillow
+
+      - name: Apply V6.1 fixes
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v61.py extracted/EspritLibreAndroid
 
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
@@ -62,5 +70,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v6-dev-apk
+          name: esprit-leger-v6-1-dev-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
