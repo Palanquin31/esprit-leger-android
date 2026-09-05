@@ -141,6 +141,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v81.py extracted/EspritLibreAndroid
 
+      - name: Apply V8.2 daily fluidity improvements
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v82.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
@@ -150,5 +154,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v8-1-dev-apk
+          name: esprit-leger-v8-2-dev-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
