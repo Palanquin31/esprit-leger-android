@@ -40,9 +40,30 @@ html,n=re.subn(
 if n!=1:
     raise SystemExit('V8.3 theme wrapper not found')
 
-# 5) Re-add only the non-Light structural rules that V8.3 supplied:
-# stronger Twilight navigation, global week settings, and safe modal height.
-# Validation buttons are explicitly static: visible at the end of the scroll, never floating.
+# 5) Remove the old V8.1 sticky event actions at their source instead of overriding them later.
+# The buttons remain at the natural end of the form and scroll normally with the sheet.
+static_event_actions='''#eventModal .event-actions-v81{
+  position:static!important;
+  bottom:auto!important;
+  z-index:auto!important;
+  padding:10px 0 0!important;
+  margin-top:14px!important;
+  background:transparent!important;
+  border-radius:0 0 22px 22px!important;
+  box-shadow:none!important;
+}'''
+html,n=re.subn(
+    r'#eventModal \.event-actions-v81\{\s*position:sticky!important;.*?\}\s*'
+    r'body\.twilight #eventModal \.event-actions-v81,\s*body\.dark #eventModal \.event-actions-v81\{.*?\}',
+    static_event_actions,
+    html,
+    count=1,
+    flags=re.S)
+if n!=1:
+    raise SystemExit('V8.1 sticky event action block not found')
+
+# 6) Re-add only the non-Light structural rules that V8.3 supplied:
+# stronger Twilight navigation, global week settings, and the validated modal height.
 css=r'''
 <style id="v85-clean-stable-style">
 /* Validated Twilight navigation: slightly more visible without changing the palette. */
@@ -91,7 +112,7 @@ body.light .week-global-settings-v83{
   .week-global-settings-v83 .week-global-preview{grid-column:1;}
 }
 
-/* Keep the modal height validated in V8.4 but return action buttons to document flow. */
+/* Keep the modal height validated in V8.4. Buttons themselves stay in normal document flow. */
 #eventModal,#weekModal{
   padding-bottom:146px !important;
   align-items:flex-end !important;
@@ -102,28 +123,13 @@ body.light .week-global-settings-v83{
   overscroll-behavior:contain !important;
   padding-bottom:24px !important;
 }
-#eventModal .event-actions-v81{
-  position:static !important;
-  bottom:auto !important;
-  z-index:auto !important;
-  margin-top:14px !important;
-  padding:10px 0 0 !important;
-  background:transparent !important;
-  box-shadow:none !important;
-}
-#weekModal .modal-validate{
-  position:static !important;
-  bottom:auto !important;
-  z-index:auto !important;
-  margin-top:14px !important;
-  box-shadow:none !important;
-}
+#weekModal .modal-validate{margin-top:14px !important;}
 </style>
 '''
 if 'id="v85-clean-stable-style"' not in html:
     html += css
 
-# 6) Sanity checks before writing the asset.
+# 7) Sanity checks before writing the asset.
 if 'id="v83-corrective-style"' in html or 'id="v84-light-and-modal-fix"' in html:
     raise SystemExit('obsolete Light style layer still present')
 if 'id="v80-auto-theme"' in html:
@@ -132,6 +138,8 @@ if html.count('window.applyThemeV82=function') != 1:
     raise SystemExit(f'expected one applyThemeV82 controller, found {html.count("window.applyThemeV82=function")}')
 if html.count("matchMedia('(prefers-color-scheme: dark)')") != 1:
     raise SystemExit('automatic theme listener/controller is not unique')
+if 'position:sticky!important' in html:
+    raise SystemExit('residual sticky positioning remains in compiled UI')
 
 htmlp.write_text(html,encoding='utf-8')
 
