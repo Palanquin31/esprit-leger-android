@@ -177,6 +177,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v89_contrast.py extracted/EspritLibreAndroid
 
+      - name: Apply V8.10 calendar and notification stabilization
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v810.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
@@ -186,5 +190,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v8-9-stable-audit-apk
+          name: esprit-leger-v8-10-stable-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
