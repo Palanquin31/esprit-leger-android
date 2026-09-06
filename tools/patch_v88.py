@@ -49,6 +49,7 @@ css=r'''
   overscroll-behavior:contain !important;
   padding-bottom:26px !important;
   margin-top:0 !important;
+  margin-bottom:0 !important;
 }
 #eventModal .event-actions-v81,#weekModal .modal-validate{
   position:static !important;
