@@ -185,6 +185,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v810_compilefix.py extracted/EspritLibreAndroid
 
+      - name: Apply V8.10 final score coherence
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v810_scorefix.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
@@ -194,5 +198,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v8-10-stable-apk
+          name: esprit-leger-v8-10-final-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
