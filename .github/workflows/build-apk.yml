@@ -169,6 +169,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v88.py extracted/EspritLibreAndroid
 
+      - name: Apply V8.9 stability and smarter suggestions
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v89.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
@@ -178,5 +182,5 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: esprit-leger-v8-8-week-test-apk
+          name: esprit-leger-v8-9-stable-audit-apk
           path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
