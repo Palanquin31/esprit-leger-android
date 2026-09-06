@@ -181,6 +181,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v810.py extracted/EspritLibreAndroid
 
+      - name: Apply V8.10 notification compile hardening
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v810_compilefix.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
