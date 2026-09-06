@@ -1,0 +1,100 @@
+name: Build L'Esprit Leger Premium V1 Scaffold
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ esprit-leger-premium-v1 ]
+
+jobs:
+  build-premium-v1-scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install build dependencies
+        run: |
+          python3 -m pip install --quiet pillow
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Extract stable project
+        run: unzip -q EspritLibreAndroid_V5.zip -d extracted
+
+      - name: Rebuild stable V8.9 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="extracted/EspritLibreAndroid"
+          patches=(
+            patch_v6.py
+            patch_v61.py
+            patch_v62.py
+            patch_v62_state.py
+            patch_v63.py
+            patch_v64.py
+            patch_v65.py
+            patch_v65_nosign.py
+            patch_v66.py
+            patch_v67.py
+            patch_v68.py
+            patch_v69.py
+            patch_v610.py
+            patch_v611.py
+            patch_v612.py
+            patch_v613.py
+            patch_v614.py
+            patch_v70.py
+            patch_v71.py
+            patch_v72.py
+            patch_v80.py
+            patch_v81.py
+            patch_v82.py
+            patch_v83.py
+            patch_v84.py
+            patch_v85.py
+            patch_v86.py
+            patch_v87.py
+            patch_v88.py
+            patch_v89.py
+            patch_v89_contrast.py
+          )
+          for patch in "${patches[@]}"; do
+            python3 "tools/$patch" "$ROOT"
+          done
+
+      - name: Inject inactive Premium V1 scaffold
+        run: python3 tools/patch_premium_v1_scaffold.py extracted/EspritLibreAndroid
+
+      - name: Verify Premium features remain disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML="extracted/EspritLibreAndroid/app/src/main/assets/index.html"
+          grep -q 'PREMIUM_FAMILY_V1_ENABLED: false' "$HTML"
+          grep -q 'CLOUD_SYNC_ENABLED: false' "$HTML"
+          grep -q 'FAMILY_ADVICE_SYNC_ENABLED: false' "$HTML"
+          grep -q 'id="premium-v1-family-scaffold"' "$HTML"
+
+      - name: Build debug APK
+        working-directory: extracted/EspritLibreAndroid
+        run: gradle assembleDebug
+
+      - name: Upload inactive Premium V1 scaffold APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: esprit-leger-premium-v1-scaffold-apk
+          path: extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk
