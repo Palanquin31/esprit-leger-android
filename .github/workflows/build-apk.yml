@@ -173,6 +173,10 @@ jobs:
         if: steps.archive.outputs.present == 'true'
         run: python3 tools/patch_v89.py extracted/EspritLibreAndroid
 
+      - name: Harden V8.9 automatic text contrast
+        if: steps.archive.outputs.present == 'true'
+        run: python3 tools/patch_v89_contrast.py extracted/EspritLibreAndroid
+
       - name: Build debug APK
         if: steps.archive.outputs.present == 'true'
         working-directory: extracted/EspritLibreAndroid
