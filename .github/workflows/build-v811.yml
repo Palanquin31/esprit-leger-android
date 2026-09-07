@@ -1,0 +1,88 @@
+name: Build Esprit Leger V8.11
+on:
+  workflow_dispatch:
+  push:
+    branches: [v8.11-photo-polish]
+    paths:
+      - '.github/workflows/build-v811.yml'
+      - 'tools/patch_v811.py'
+      - 'tools/v811-ui.css'
+      - 'tools/v811-ui.js'
+      - 'tools/PhotoBridgeV811.java'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Reconstruct V8.10 and apply V8.11
+        run: |
+          set -e
+          python3 -m pip install --quiet pillow
+          unzip -q EspritLibreAndroid_V5.zip -d extracted
+          for p in patch_v6.py patch_v61.py patch_v62.py patch_v62_state.py patch_v63.py patch_v64.py patch_v65.py patch_v65_nosign.py patch_v66.py patch_v67.py patch_v68.py patch_v69.py patch_v610.py patch_v611.py patch_v612.py patch_v613.py patch_v614.py patch_v70.py patch_v71.py patch_v72.py patch_v80.py patch_v81.py patch_v82.py patch_v83.py patch_v84.py patch_v85.py patch_v86.py patch_v87.py patch_v88.py patch_v89.py patch_v89_contrast.py patch_v810.py patch_v810_compilefix.py patch_v810_scorefix.py; do
+            python3 "tools/$p" extracted/EspritLibreAndroid
+          done
+          python3 tools/patch_v811.py extracted/EspritLibreAndroid
+      - name: Check source and JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from xml.etree import ElementTree as ET
+          import subprocess
+          root=Path('extracted/EspritLibreAndroid')
+          text=(root/'app/src/main/assets/index.html').read_text()
+          class Check(HTMLParser):
+              def __init__(self):
+                  super().__init__();self.ids=[];self.scripts=[];self.inscript=False;self.parts=[]
+              def handle_starttag(self,tag,attrs):
+                  for k,v in attrs:
+                      if k=='id':self.ids.append(v)
+                  if tag=='script':self.inscript=True;self.parts=[]
+              def handle_data(self,data):
+                  if self.inscript:self.parts.append(data)
+              def handle_endtag(self,tag):
+                  if tag=='script' and self.inscript:self.scripts.append(''.join(self.parts));self.inscript=False
+          c=Check();c.feed(text)
+          assert len(c.ids)==len(set(c.ids)), 'Duplicate HTML IDs'
+          assert 'v811PhotoModal' in c.ids and 'v811PhotoSave' in c.ids
+          assert 'v811ShareCard' in c.ids
+          assert all('disabled' in line for line in text.splitlines() if 'class="smallbtn v811-share"' in line)
+          assert 'versionCode 812' in (root/'app/build.gradle').read_text()
+          ET.parse(root/'app/src/main/AndroidManifest.xml')
+          for i,script in enumerate(c.scripts):
+              if not script.strip():continue
+              f=Path('/tmp')/f'esprit-v811-{i}.js';f.write_text(script)
+              subprocess.run(['node','--check',str(f)],check=True)
+          print(f'Static checks passed: {len(c.scripts)} scripts, {len(c.ids)} unique IDs, valid manifest.')
+          PY
+      - name: Build debug APK
+        working-directory: extracted/EspritLibreAndroid
+        run: gradle assembleDebug --no-daemon
+      - name: Verify APK and version
+        run: |
+          set -e
+          APK='extracted/EspritLibreAndroid/app/build/outputs/apk/debug/app-debug.apk'
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | grep -m1 "package: name='com.espritlibre.app' versionCode='812' versionName='8.11'"
+          mkdir -p dist
+          cp "$APK" dist/Esprit_Leger_V8_11_TEST.apk
+          sha256sum dist/Esprit_Leger_V8_11_TEST.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Esprit_Leger_V8_11_TEST
+          path: dist/Esprit_Leger_V8_11_TEST.apk
+          retention-days: 14
