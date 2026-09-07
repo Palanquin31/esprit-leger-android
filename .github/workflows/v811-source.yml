@@ -1,0 +1,48 @@
+name: Prepare V8.11 source
+on:
+  push:
+    branches: [v8-11-visual-photo-preview]
+    paths: ['.github/workflows/v811-source.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct verified V8.10 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -q EspritLibreAndroid_V5.zip -d extracted
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          import pathlib, subprocess
+          workflow=pathlib.Path('.github/workflows/build-apk.yml').read_text()
+          import re
+          patches=re.findall(r'run: python3 (tools/patch_[\w]+\.py) extracted/EspritLibreAndroid',workflow)
+          assert patches and patches[-1]=='tools/patch_v810_scorefix.py', patches
+          for patch in patches:
+              subprocess.run(['python3',patch,'extracted/EspritLibreAndroid'],check=True)
+          print('Reconstructed baseline with',len(patches),'patches')
+          PY
+      - name: Save source snapshot for review
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p working-v810
+          cp -a extracted/EspritLibreAndroid/app working-v810/
+          cp extracted/EspritLibreAndroid/build.gradle extracted/EspritLibreAndroid/settings.gradle working-v810/
+          find working-v810 -type f \( -name '*.keystore' -o -name '*.jks' -o -name '*.b64' -o -name 'local.properties' \) -delete
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add working-v810
+          if ! git diff --cached --quiet; then
+            git commit -m 'Snapshot reconstructed V8.10 source for V8.11'
+            git push origin HEAD:v8-11-visual-photo-preview
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esprit-leger-v810-source
+          path: working-v810/
