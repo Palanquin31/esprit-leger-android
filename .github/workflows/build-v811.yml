@@ -36,6 +36,12 @@ jobs:
           done
           python3 tools/patch_v811.py extracted/EspritLibreAndroid
           printf 'android.useAndroidX=true\n' >> extracted/EspritLibreAndroid/gradle.properties
+          cat >> extracted/EspritLibreAndroid/app/build.gradle <<'GRADLE'
+          // Align the Kotlin runtime required by the AndroidX and ML Kit dependencies.
+          configurations.configureEach {
+              resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22', 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22', 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+          }
+          GRADLE
       - name: Check source and JavaScript syntax
         run: |
           python3 - <<'PY'
