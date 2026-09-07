@@ -1,0 +1,28 @@
+/* V8.11: one responsive geometry for the three home cards. */
+.stable-hero{box-sizing:border-box;max-width:100%;overflow:visible}
+.stable-hero .hero-stats-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start!important;gap:clamp(6px,2vw,12px)!important;margin-top:18px!important}
+.stable-hero .hero-stat-card{box-sizing:border-box;min-width:0!important;min-height:0!important;height:auto!important;aspect-ratio:auto!important;align-self:start!important;padding:12px 7px!important;border-radius:20px!important;overflow:hidden}
+.stable-hero .hero-stat-card small{font-size:11px!important;line-height:1.3!important;margin-bottom:8px!important}
+.stable-hero .hero-stat-card>div{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0;line-height:1.25!important}
+.stable-hero .hero-stat-card>div b{font-size:clamp(12px,3.3vw,16px)!important;line-height:1.3!important;overflow-wrap:anywhere;max-width:100%}
+.stable-hero .hero-stat-card .hero-round-icon,.stable-hero .hero-stat-card #weatherIcon,.stable-hero .hero-stat-card #healthSmiley{flex:0 0 auto;font-size:22px!important;line-height:1.4!important}
+.stable-hero .hero-stat-card p{font-size:11px!important;line-height:1.4!important;margin:7px 0 0!important;overflow-wrap:anywhere}
+#serenityScoreNum{display:block!important;font-size:clamp(19px,5.2vw,26px)!important;font-weight:900!important;line-height:1.2!important;letter-spacing:-.5px!important;color:#262034!important;font-variant-numeric:tabular-nums}
+body.crepuscule #serenityScoreNum{color:#fff!important}
+.hero-stat-card:focus-visible{outline:3px solid currentColor;outline-offset:2px}
+@media(max-width:360px){.stable-hero{padding:18px 12px!important}.stable-hero .hero-stats-row{gap:5px!important}.stable-hero .hero-stat-card{padding:10px 5px!important;border-radius:16px!important}.stable-hero .hero-stat-card p{font-size:10px!important}}
+/* Sharing is a visible, disabled placeholder. It creates no data or network traffic. */
+.v811-action-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.v811-action-row>*{flex:1 1 140px;min-width:0}
+.v811-share{display:inline-flex;justify-content:center;align-items:center;gap:7px;opacity:.68;cursor:not-allowed!important}
+.v811-share:disabled{opacity:.68!important;pointer-events:none!important}
+.v811-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.v811-photo-actions button{flex:1 1 130px;min-width:0}
+.v811-photo-status{min-height:1.5em;margin:8px 0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.v811-photo-status[role=status]{color:var(--muted)}
+.v811-photo-preview{width:100%;box-sizing:border-box;min-height:145px;resize:vertical;line-height:1.55;font-size:15px}
+.v811-qr-placeholder{width:132px;height:132px;margin:15px auto 10px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;border:2px dashed currentColor;border-radius:16px;opacity:.55;text-align:center}
+.v811-qr-placeholder span{font-size:27px}
+.v811-share-card{text-align:center}
+.v811-photo-badge{display:inline-block;font-size:11px;font-weight:850;border-radius:99px;padding:4px 9px;background:var(--surface,#f2edf8)}
+body.crepuscule .v811-photo-badge{background:#39323f;color:#f1edf3}
