@@ -1,0 +1,38 @@
+name: Prepare V8.11 source
+on:
+  push:
+    branches: [v8.11-photo-polish]
+    paths:
+      - '.github/workflows/prepare-v811.yml'
+  workflow_dispatch:
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install patch dependency
+        run: python3 -m pip install --quiet pillow
+      - name: Reconstruct verified V8.10 source
+        run: |
+          unzip -q EspritLibreAndroid_V5.zip -d extracted
+          for p in patch_v6.py patch_v61.py patch_v62.py patch_v62_state.py patch_v63.py patch_v64.py patch_v65.py patch_v65_nosign.py patch_v66.py patch_v67.py patch_v68.py patch_v69.py patch_v610.py patch_v611.py patch_v612.py patch_v613.py patch_v614.py patch_v70.py patch_v71.py patch_v72.py patch_v80.py patch_v81.py patch_v82.py patch_v83.py patch_v84.py patch_v85.py patch_v86.py patch_v87.py patch_v88.py patch_v89.py patch_v89_contrast.py patch_v810.py patch_v810_compilefix.py patch_v810_scorefix.py; do
+            python3 "tools/$p" extracted/EspritLibreAndroid
+          done
+      - name: Package source without signing material
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          root=Path('extracted/EspritLibreAndroid')
+          banned={'.git','.gradle','build','.idea'}
+          with ZipFile('v811-source.zip','w',ZIP_DEFLATED) as z:
+              for p in root.rglob('*'):
+                  if not p.is_file() or any(part in banned for part in p.parts): continue
+                  if p.suffix.lower() in {'.jks','.keystore','.p12','.pfx','.pem','.key'} or p.name=='local.properties': continue
+                  z.write(p,p.relative_to(root))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v811-source-snapshot
+          path: v811-source.zip
+          retention-days: 7
